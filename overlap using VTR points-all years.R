@@ -3,7 +3,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 #load needed packages and install if not currently installed.
 pkgs_to_use <- c("rlang","foreign","tidyverse", "sp", "sf", "rgeos","rgdal", "here", "scales", "raster", "stringi", "ggplot2", "tigris",
-                 "dplyr", "writexl", "readxl","xlsx","mapview","geosphere"  )
+                 "dplyr", "writexl", "readxl","xlsx","mapview","geosphere")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 
@@ -131,7 +131,7 @@ lat_lons_ready <- lat_lons_ready %>%
 ungroup
 
 ##Calculate the distance of each lat/lon to the centroid by state
-lat_lons_ready$distance<-distHaversine(lat_lons_ready[,2:3], lat_lons_ready[,4:5])
+lat_lons_ready$distance<-geosp::distHaversine(lat_lons_ready[,2:3], lat_lons_ready[,4:5])
 
 ##Calculate tthe 95 pctile of distance to centroid by state
 lat_lons_ready <- lat_lons_ready %>%  
@@ -160,14 +160,14 @@ states <- map_data("state")
 east_coast <- subset(states, region %in% c("maine", "massachusetts", "vermont", "new hampshire","rhode island", "connecticut", "new york", "pennsylvania",
                                            "new jersey", "maryland", "delaware", "district of columbia", "virginia", "west virginia", "north carolina"))
 
-# ggplot(east_coast) +
-#   geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
-#   geom_point(data = lat_lons_ready, aes(x = lon, y = lat, group = State, colour = State), size = 1, shape = 20) +
-#   geom_polygon(data = lat_lon_hulls, aes(x = lon, y = lat, group = State, colour = State), alpha = 0.3, show.legend = FALSE) +
-#   coord_sf(xlim = c(-80, -64), ylim = c(34, 46)) +
-#   theme(axis.title.y=element_blank(),
-#         axis.title.x=element_blank(),
-#         plot.title = element_text(hjust = 0.5))
+ggplot(east_coast) +
+  geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
+  geom_point(data = lat_lons_ready, aes(x = lon, y = lat, group = State, colour = State), size = 1, shape = 20) +
+  geom_polygon(data = lat_lon_hulls, aes(x = lon, y = lat, group = State, colour = State), alpha = 0.3, show.legend = FALSE) +
+  coord_sf(xlim = c(-80, -64), ylim = c(34, 46)) +
+  theme(axis.title.y=element_blank(),
+        axis.title.x=element_blank(),
+        plot.title = element_text(hjust = 0.5))
 
 
 

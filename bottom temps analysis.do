@@ -3,17 +3,23 @@ cd "\\net.nefsc.noaa.gov\aharris\DisMap data"
 
 
 ***After running the R-script to get the state biomass area in which each temp value occurred, import the data here
-import excel using "bottom_temps1.xlsx", clear  first 
+import excel using "bottom_temps_new1.xlsx", clear  first 
 tempfile bottom_temps1
 save `bottom_temps1', replace 
 
-import excel using "bottom_temps2.xlsx", clear  first 
+import excel using "bottom_temps_new2.xlsx", clear  first 
 tempfile bottom_temps2
 save `bottom_temps2', replace 
 
-import excel using "bottom_temps3.xlsx", clear  first 
+import excel using "bottom_temps_new3.xlsx", clear  first 
+tempfile bottom_temps3
+save `bottom_temps3', replace 
+
+import excel using "bottom_temps_new4.xlsx", clear  first 
+
 append using `bottom_temps1'
 append using `bottom_temps2'
+append using `bottom_temps3'
 
 
 
@@ -23,10 +29,14 @@ drop if state_name=="character(0)"
 
 
 replace state_name = `"c("MA")"' if state_name=="MA"
-replace state_name = `"c("NJ")"' if state_name=="NJ"
-replace state_name = `"c("NY")"' if state_name=="NY"
 replace state_name = `"c("RI")"' if state_name=="RI"
+replace state_name = `"c("CT")"' if state_name=="CT"
+replace state_name = `"c("NY")"' if state_name=="NY"
+replace state_name = `"c("NJ")"' if state_name=="NJ"
+replace state_name = `"c("DE")"' if state_name=="DE"
+replace state_name = `"c("MD")"' if state_name=="MD"
 replace state_name = `"c("VA")"' if state_name=="VA"
+replace state_name = `"c("NC")"' if state_name=="NC"
 
 split state_name, parse("c(", ")") 
 drop state_name1
@@ -111,7 +121,7 @@ replace month1=12 if month=="tmpDec"
 drop month 
 drop geometry
 rename month1 month
-save "bottom_temps_by_state.dta", replace
+save "bottom_temps_by_state_new.dta", replace
 
 
 *Collapse to obatin the mean bottom temp by state year month1
@@ -124,7 +134,7 @@ encode state, gen(st1)
 
 
 xtset st1 yr_mnth
-/*
+/
 levelsof state, local(sts)
 foreach s of local sts{
 twoway (tsline bt_tmp if state=="`s'") (lfit bt_tmp yr_mnth if state=="`s'" , ///
@@ -135,6 +145,6 @@ twoway (tsline bt_tmp if state=="`s'") (lfit bt_tmp yr_mnth if state=="`s'" , //
 gr combine bt_MA  bt_RI bt_CT bt_NY bt_NJ bt_DE bt_MD bt_VA bt_NC, ycommon  ///
 		cols(3) title("Mean bottom temperatures", size(medium)) graphregion(fcolor(white) lcolor(white)) plotregion(fcolor(white) lcolor(white))
 
-*/
+
 		
-export excel using "mean bottom temps.xlsx", replace firstrow(variables) 
+export excel using "mean bottom temps updated.xlsx", replace firstrow(variables) 
