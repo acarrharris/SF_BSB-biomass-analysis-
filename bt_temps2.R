@@ -64,6 +64,7 @@ lat_lons_all = list()
 
 
 for (m in 1:dim(time)){
+  dim(tmp_array)
   
   m <- m #get a single slice or layer (year m)
   tmp_slice <- tmp_array[,,,m]
@@ -92,7 +93,7 @@ for (m in 1:dim(time)){
   
   #tmp_vec_long<-na.omit(tmp_vec_long)
   # reshape the vector into a matrix
-  tmp_mat <- matrix(tmp_vec_long, nrow=nlon*nlat, ncol=12)
+  tmp_mat <- matrix(tmp_vec_long, nrow=nlon*nlat, ncol=366) #one column for each day +1 to align with data
   dim(tmp_mat)
   
   
@@ -102,32 +103,49 @@ for (m in 1:dim(time)){
   # create a dataframe
   lonlat <- as.matrix(expand.grid(lon,lat))
   tmp_df02 <- data.frame(cbind(lonlat,tmp_mat))
-  names(tmp_df02) <- c("lon","lat","tmpJan","tmpFeb","tmpMar","tmpApr","tmpMay","tmpJun",
-                       "tmpJul","tmpAug","tmpSep","tmpOct","tmpNov","tmpDec")
+  
+  #Reshape the columns to days, noting that the first two are the lon lats
+  tmp_df02_long <- tmp_df02 %>% 
+    pivot_longer(
+      cols = 'V3':'V368', 
+      names_to = "day",
+      values_to = "value"
+    )
   
   
+  
+  tmp_df02_long<-na.omit(tmp_df02_long) #remove lon-lats with no bt_data
+  tmp_df02_long$day<-substring(tmp_df02_long$day, 2) #extract the day of year
+  tmp_df02_long$day<-as.numeric(tmp_df02_long$day) 
+  tmp_df02_long$day<-tmp_df02_long$day-3 #subtract 3 from day because there were two extra columns for lat and lon 
+                                         # in the reshape, and in the code below, as.date starts at 0 
+  tmp_df02_long$date<-as.Date(tmp_df02_long$day, origin = "0001-01-01") # day of the year to date 
+  tmp_df02_long$month <- format(tmp_df02_long$date, "%m") #extract the month 
+  
+  
+  mean_tmps <- tmp_df02_long %>% 
+    dplyr::select(-c("day", "date")) %>% 
+    data.table()
+  mean_tmps <- mean_tmps[, lapply(.SD, mean), by=list(Var1,Var2, month)] %>% 
+    tibble() #%>% #collpase daily bt_tmpe by month
 
+  names(mean_tmps) <- c("lon","lat","month", "bt_tmp")
   
-  lat_lons[[m]] <- tmp_df02
-  lat_lons[[m]]$year<- 1958+m
+  lat_lons[[m]] <- mean_tmps
+  lat_lons[[m]]$year<- 1958+m #add year, which starts at 1959
   
 }
 lat_lons_all= rbindlist(lat_lons, fill=TRUE)
 ls(lat_lons_all)
 
+ggplot(lat_lons_all)+aes(x=month,y=bt_tmp)+geom_boxplot()
 
-lat_lons_all_long <- lat_lons_all %>% 
-  pivot_longer(cols=c("tmpApr", "tmpAug", "tmpDec", "tmpFeb", "tmpJan", "tmpJul", "tmpJun", "tmpMar", "tmpMay", "tmpNov", "tmpOct", "tmpSep"),
-               names_to='month',
-               values_to='bt_tmp')
 
+lat_lons_all_long <-lat_lons_all
 
 
 
-lat_lons_all_long <-na.omit(lat_lons_all_long)
-
-
-
+##Now make convex hulls by state from the population of VTR points
 ###now create the convex hull of VTR points
 PROJ.USE = CRS('+proj=aea +lat_1=28 +lat_2=42 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 ')
 
@@ -222,7 +240,7 @@ VTR_boundaries <- spTransform(hull_poly_boundaries, CRS=PROJ.USE)
 
 
 
-
+##Now find overlap between the bt_tmp lat lons and the VTR convex hulls
 # Input the bt_tmp data 
 dat <- lat_lons_all_long
 VTRs<- st_as_sf(VTR_boundaries)
@@ -238,20 +256,18 @@ sp_points$state_name<-as.character(sp_points$state_name)
 sp_points$row_num <- seq.int(nrow(sp_points)) 
 
 
-#save data and clean up in stata
-
+#save data and clean up in stata. I split the data into multiple files to copmply with excel limitations
 sp_points1<-subset(sp_points,sp_points$row_num<=1000000 )
 sp_points2<-subset(sp_points,sp_points$row_num>1000000 & sp_points$row_num<=2000000)
 sp_points3<-subset(sp_points,sp_points$row_num>2000000  & sp_points$row_num<=3000000)
-sp_points4<-subset(sp_points,sp_points$row_num>3000000  )
 
 write_xlsx(sp_points1,"\\\\net.nefsc.noaa.gov/aharris/DisMap data/bottom_temps_new1.xlsx")
 write_xlsx(sp_points2,"\\\\net.nefsc.noaa.gov/aharris/DisMap data/bottom_temps_new2.xlsx")
 write_xlsx(sp_points3,"\\\\net.nefsc.noaa.gov/aharris/DisMap data/bottom_temps_new3.xlsx")
-write_xlsx(sp_points4,"\\\\net.nefsc.noaa.gov/aharris/DisMap data/bottom_temps_new4.xlsx")
 
 
-lat_lons_all_long_22<- subset(lat_lons_all_long, year==2022 & month=="tmpJun")
+#plots
+lat_lons_all_long_22<- subset(lat_lons_all_long, year==2022 & month=="01")
 
 ggplot(east_coast) +
   geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
@@ -263,16 +279,6 @@ ggplot(east_coast) +
 
 # SIMPLE HEATMAP
 
-ggplot(east_coast) +
-  stat_density2d(data = lat_lons_all_long_22, aes(x = lon, y = lat, fill = ..density..), geom = 'tile', contour = F)
-  geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
-coord_sf(xlim = c(-80, -64), ylim = c(34, 46)) +
-  theme(axis.title.y=element_blank(),
-        axis.title.x=element_blank(),
-        plot.title = element_text(hjust = 0.5))
-
-ggplot() +
-  stat_density2d(data = lat_lons_all_long_22, aes(x = lon, y = lat, fill = ..density..), geom = 'tile', contour = F)
 
 #Check to see if bt_tmps that are not associated with a state indeed fall outside the state biomass access areas
 sp_points_outside<- subset(sp_points, state_name=="character(0)")
