@@ -238,7 +238,24 @@ hull_poly_boundaries <- readOGR( dsn="\\\\net.nefsc.noaa.gov/aharris/DisMap data
 
 VTR_boundaries <- spTransform(hull_poly_boundaries, CRS=PROJ.USE)
 
-
+# ggplot(east_coast) +
+#   geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
+#   geom_point(data = lat_lons_ready, aes(x = lon, y = lat, group = State, size = 1, shape = 20)) +
+#   geom_polygon(data = lat_lon_hulls, aes(x = lon, y = lat, group = State, colour = State), alpha = 0.3, show.legend = FALSE) +
+#   coord_sf(xlim = c(-80, -64), ylim = c(34, 46)) +
+#   theme(axis.title.y=element_blank(),
+#         axis.title.x=element_blank(),
+#         plot.title = element_text(hjust = 0.5))
+# 
+# 
+# ggplot(east_coast) +
+#   geom_polygon(aes(x = long, y = lat, group = group), fill = "#D1D1E0", color = "black") +
+#   geom_point(data = lat_lons_ready, aes(x = lon, y = lat, group = State, colour = State), size = 1, shape = 20) +
+#   geom_polygon(data = lat_lon_hulls, aes(x = lon, y = lat, group = State, colour = State), alpha = 0.3, show.legend = FALSE) +
+#   coord_sf(xlim = c(-80, -64), ylim = c(34, 46)) +
+#   theme(axis.title.y=element_blank(),
+#         axis.title.x=element_blank(),
+#         plot.title = element_text(hjust = 0.5))
 
 ##Now find overlap between the bt_tmp lat lons and the VTR convex hulls
 # Input the bt_tmp data 
@@ -302,3 +319,7 @@ ggplot(east_coast) +
   theme(axis.title.y=element_blank(),
         axis.title.x=element_blank(),
         plot.title = element_text(hjust = 0.5))
+
+
+
+

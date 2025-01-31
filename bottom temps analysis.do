@@ -12,14 +12,15 @@ tempfile bottom_temps2
 save `bottom_temps2', replace 
 
 import excel using "bottom_temps_new3.xlsx", clear  first 
-tempfile bottom_temps3
-save `bottom_temps3', replace 
 
-import excel using "bottom_temps_new4.xlsx", clear  first 
+*tempfile bottom_temps3
+*save `bottom_temps3', replace 
+
+*import excel using "bottom_temps_new4.xlsx", clear  first 
 
 append using `bottom_temps1'
 append using `bottom_temps2'
-append using `bottom_temps3'
+*append using `bottom_temps3'
 
 
 
@@ -43,6 +44,7 @@ drop state_name1
 drop state_name 
 
 
+replace row_num=_n
 
 *Many points lie in multiple areas
 *Duplicate these point and assign to each state sep
@@ -105,6 +107,7 @@ drop state_name state_name1
 rename state_name2 state
 drop n
 
+/*
 gen month1=1 if month=="tmpJan"
 replace month1=2 if month=="tmpFeb"
 replace month1=3 if month=="tmpMar"
@@ -117,34 +120,90 @@ replace month1=9 if month=="tmpSep"
 replace month1=10 if month=="tmpOct"
 replace month1=11 if month=="tmpNov"
 replace month1=12 if month=="tmpDec"
-
-drop month 
+*/
+destring month, replace 
 drop geometry
-rename month1 month
-save "bottom_temps_by_state_new.dta", replace
+save "historical_bottom_temps_by_state_new.dta", replace
 
 
-*Collapse to obatin the mean bottom temp by state year month1
-collapse (mean) bt_tmp, by(state year month)
+*Make box plots by state of mean bt_tmps
+u "historical_bottom_temps_by_state_new.dta", clear
 
 gen yr_mnth=ym(year,month)
 format yr_mnth %tm
 
 encode state, gen(st1)
+*graph box bt_tmp if state=="NJ", over(year) noout
 
 
+
+
+
+*Collapse to obatin the mean bottom temp by state year month1
+collapse (mean) bt_tmp, by(state year month)
+
+
+
+
+encode state, gen(st1)
+gen yr_mnth=ym(year,month)
+format yr_mnth %tm
 xtset st1 yr_mnth
-/
+
+drop if state=="NC"
+
 levelsof state, local(sts)
 foreach s of local sts{
 twoway (tsline bt_tmp if state=="`s'") (lfit bt_tmp yr_mnth if state=="`s'" , ///
-				 ylabel(, angle(45) labsize(small) glcolor(gs15))  ytitle("")  ///
+				 ylabel(, angle(horizontal) labsize(small) glcolor(gs15))  ytitle("")   ///
 				 	cmissing(n) legend(off) ///
 				title("`s'", size(small)) $graphoptions name(bt_`s', replace))
 }				
-gr combine bt_MA  bt_RI bt_CT bt_NY bt_NJ bt_DE bt_MD bt_VA bt_NC, ycommon  ///
-		cols(3) title("Mean bottom temperatures", size(medium)) graphregion(fcolor(white) lcolor(white)) plotregion(fcolor(white) lcolor(white))
+gr combine bt_MA  bt_RI bt_CT bt_NY bt_NJ bt_DE bt_MD bt_VA ,  ycommon  ///
+		cols(4) title("Mean bottom temperatures", size(medium))  graphregion(fcolor(white) lcolor(white)) plotregion(fcolor(white) lcolor(white))
 
 
 		
-export excel using "mean bottom temps updated.xlsx", replace firstrow(variables) 
+*Now make graph for projected distirbtuions using geret transofmred dtata 		
+import delimited using "decadal_bottom_temp_distributions_levels_03-3-2023.csv", clear 
+encode state, gen(st1)
+gen year=decade*10 
+replace year=2010+year
+
+gen yr_mnth=ym(year,month)
+format yr_mnth %tm
+xtset st1 yr_mnth
+sort st1 yr_mnth
+tsline average if state=="NJ", cmissing(n)
+
+graph box average if state=="NJ", over(year) 
+
+	
+	
+	
+levelsof state, local(sts)
+foreach s of local sts{
+graph box average if state=="`s'", over(decade)  ///
+				 ylab(,labsize(small) glcolor(gs15) angle(horizontal))  ytitle("")  ///
+				 	 legend(off)  ///
+				title("`s'", size(small)) $graphoptions name(bt_`s', replace)
+}				
+gr combine bt_MA  bt_RI bt_CT bt_NY bt_NJ bt_DE bt_MD bt_VA , ycommon  ///
+		cols(4) title("", size(medium)) graphregion(fcolor(white) margin(tiny) lcolor(white)) plotregion(fcolor(white) lcolor(white) )
+		
+
+		
+		
+		
+		
+levelsof state, local(sts)
+foreach s of local sts{
+graph box bt_tmp if state=="`s'", over(month) ///
+				title("`s'", size(small)) $graphoptions name(bt_`s', replace)
+}				
+gr combine bt_MA  bt_RI bt_CT bt_NY bt_NJ bt_DE bt_MD bt_VA bt_NC, ycommon  ///
+		cols(3) title("Monthly temperatures", size(medium)) graphregion(fcolor(white) lcolor(white)) plotregion(fcolor(white) lcolor(white))
+
+		
+		
+export excel using "historical mean bottom temps updated.xlsx", replace firstrow(variables) 

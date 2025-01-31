@@ -3,7 +3,11 @@ args = commandArgs(trailingOnly=TRUE)
 
 #load needed packages and install if not currently installed.
 pkgs_to_use <- c("rlang","foreign","tidyverse", "sp", "sf", "rgeos","rgdal", "here", "scales", "raster", "stringi", "ggplot2", "tigris",
-                 "dplyr", "writexl", "readxl","xlsx","mapview","geosphere")
+                 "dplyr", "writexl", "readxl","xlsx","mapview","geosphere", 
+                 "tidyr",  "magrittr", "tidyverse", "reshape2", "splitstackshape","doBy","WriteXLS","Rcpp",
+                 "ggplot2","dplyr","rlist","fitdistrplus","MASS","psych","rgl","copula","VineCopula","scales",
+                 "univariateML","logspline","readr","data.table","conflicted", "readxl", "writexl", "fs", 
+                 "purrr", "readr", "here","plyr" , "furrr", "profvis", "future", "gridExtra")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 
@@ -111,9 +115,10 @@ for (x in file_list_BSB_S) {
 ###########Input the VTR points######
 #####################################
 #####################################
-
+install.packages("readxl")
+library("readxl")
 #Create a single access area for each state based on VTR points for all years combined
-
+lat_lons<-read_excel("//net.nefsc.noaa.gov/home2/aharris/DisMap data/all_pc_trips_1994_2021.xlsx")
 lat_lons <- subset(data.frame(read_excel("//net.nefsc.noaa.gov/home2/aharris/DisMap data/all_pc_trips_1994_2021.xlsx")), 
                    state1 %in% c("MA", "RI", "CT", "NY", "NJ", "DE", "MD", "VA", "NC"))
 
